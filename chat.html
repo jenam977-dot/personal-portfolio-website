@@ -85,6 +85,8 @@
     border-radius:10px;padding:13px;font-size:16px;font-weight:700;cursor:pointer;}
   #msave:disabled{opacity:.5;}
   #merr{display:none;font-size:12px;color:#ff9a9a;margin-top:8px;line-height:1.5;}
+  #mnotice{display:none;font-size:12px;color:var(--acc);margin-bottom:10px;line-height:1.5;
+    background:#2a2113;border:1px solid var(--acc-d);border-radius:8px;padding:8px 10px;}
   #attach{background:var(--panel2);border:1px solid var(--line);border-radius:12px;
     padding:0 13px;font-size:18px;cursor:pointer;min-height:46px;}
   #attach:disabled{opacity:.45;}
@@ -99,6 +101,11 @@
   .pchip button{background:none;border:none;color:var(--mut);font-size:14px;cursor:pointer;padding:0 2px;}
   .fchip{display:inline-block;background:#0b0d11;border:1px solid var(--line);
     border-radius:8px;padding:3px 8px;font-size:12px;margin:4px 4px 0 0;}
+  .genimg{max-width:100%;border-radius:10px;margin-top:6px;display:block;}
+  .genlabel{font-size:11px;color:var(--mut);margin-top:6px;display:block;}
+  #imgbtn{background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+    padding:0 13px;font-size:18px;cursor:pointer;min-height:46px;}
+  #imgbtn:disabled{opacity:.45;}
 </style>
 </head>
 <body>
@@ -121,6 +128,7 @@
 <div id="preview"></div>
 <div id="composer">
   <button id="attach" title="Attach image or PDF" disabled>📎</button>
+  <button id="imgbtn" title="Generate an image" disabled>🎨</button>
   <textarea id="in" rows="1" placeholder="Message…" disabled></textarea>
   <button id="send" disabled>➤</button>
 </div>
@@ -129,6 +137,7 @@
 <div id="keymodal">
   <div class="card">
     <h2>🔑 One quick step</h2>
+    <div id="mnotice"></div>
     <p>Paste your <b>manas-main</b> API key to connect this chat to your OmniRoute server. It's saved <b>only in this browser</b> — never inside the page.</p>
     <input id="mkey" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false">
     <button id="msave">Connect</button>
@@ -144,7 +153,8 @@ const $ = id => document.getElementById(id);
 const chat=$("chat"), status=$("status"), input=$("in"), send=$("send"),
       modelSel=$("model"), keymodal=$("keymodal"), mkey=$("mkey"),
       msave=$("msave"), merr=$("merr"), keyrow=$("keyrow"), keystate=$("keystate"),
-      attachBtn=$("attach"), filepick=$("filepick"), preview=$("preview");
+      attachBtn=$("attach"), filepick=$("filepick"), preview=$("preview"),
+      imgBtn=$("imgbtn");
 let history = [], busy = false, serverReady = false, lastUser = {text:"", atts:[]};
 let pendingAttachments = [];
 
@@ -159,7 +169,18 @@ function refreshKeyUI(){
   input.disabled = !has;
   send.disabled = !has || busy;
   attachBtn.disabled = !has || busy;
+  imgBtn.disabled = !has || busy;
   if(!has) setStatus("Add your API key to begin.");
+}
+
+/* if the server rejects the key (e.g. it was reset), pop the key modal again */
+function isAuthError(msg){ return /invalid api key|unauthorized|auth_002/i.test(msg || ""); }
+function promptRekey(){
+  const n = $("mnotice");
+  n.style.display = "block";
+  n.textContent = "Your saved key was rejected — the server was reset and issued a new key. Paste the current manas-main key below.";
+  keymodal.classList.add("show");
+  setTimeout(()=>mkey.focus(), 50);
 }
 
 /* ---- key handling ---- */
@@ -374,6 +395,36 @@ function buildMessages(){
   return msgs;
 }
 
+/* ---- AI image generation (free public generator) ---- */
+imgBtn.onclick = () => {
+  if(!getKey() || busy) return;
+  const p = prompt("Describe the image to generate:");
+  if(p && p.trim()) genImage(p.trim());
+};
+function genImage(promptText){
+  addMsg("user", "🎨 " + esc(promptText));
+  const ai = addMsg("ai", '<span class="typing"><i></i><i></i><i></i></span>');
+  const seed = Math.floor(Math.random() * 1000000000);
+  const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(promptText) +
+    "?width=1024&height=1024&seed=" + seed + "&model=flux&nologo=true";
+  const probe = new Image();
+  probe.onload = () => {
+    ai.innerHTML = "";
+    const im = document.createElement("img");
+    im.src = url; im.className = "genimg"; im.alt = promptText;
+    ai.appendChild(im);
+    const lab = document.createElement("span");
+    lab.className = "genlabel";
+    lab.textContent = "AI-generated image — long-press to save.";
+    ai.appendChild(lab);
+    chat.scrollTop = chat.scrollHeight;
+  };
+  probe.onerror = () => { ai.innerHTML = esc("⚠️ Image generation failed — try again in a moment."); };
+  probe.src = url;
+  history.push({role:"user", content:"[user generated an image: " + promptText + "]"});
+  history.push({role:"assistant", content:"[image shown to user]"});
+}
+
 /* ---- api ---- */
 async function apiGet(path, key, signal){
   const res = await fetch(BASE + path, {
@@ -383,11 +434,12 @@ async function apiGet(path, key, signal){
   if(!res.ok){
     let msg = "server error " + res.status;
     try{ const j = await res.json(); if(j.error) msg = (j.error.message || j.error.code || msg); }catch(e){}
+    if(isAuthError(msg)) promptRekey();
     throw new Error(msg);
   }
   return res.json();
 }
-async function apiChat(payload, onToken, signal){
+async function apiChat(payload, onToken, signal, onTick){
   const res = await fetch(BASE + "/chat/completions", {
     method: "POST",
     headers: { "Authorization": "Bearer " + getKey(), "Content-Type": "application/json" },
@@ -397,6 +449,7 @@ async function apiChat(payload, onToken, signal){
   if(!res.ok){
     let msg = "server error " + res.status;
     try{ const j = await res.json(); if(j.error) msg = (j.error.message || j.error.code || msg); }catch(e){}
+    if(isAuthError(msg)) promptRekey();
     throw new Error(msg);
   }
   if(payload.stream && res.body){
@@ -418,6 +471,7 @@ async function apiChat(payload, onToken, signal){
           if(t){ text += t; onToken(text); }
         }catch(e){}
       }
+      if(onTick) onTick();
     }
     return text;
   }
@@ -453,7 +507,7 @@ async function doSend(isRetry){
   if(isRetry){ text = lastUser.text; atts = lastUser.atts; }
   else { text = input.value.trim(); atts = pendingAttachments; }
   if(!text && !atts.length) return;
-  busy = true; send.disabled = true; attachBtn.disabled = true;
+  busy = true; send.disabled = true; attachBtn.disabled = true; imgBtn.disabled = true;
   if(!isRetry){
     addMsg("user", userHtml(text, atts.map(a => a.name)));
     lastUser = {text:text, atts:atts};
@@ -502,7 +556,7 @@ async function doSend(isRetry){
   }
   clearInterval(tick); clearTimeout(timeout);
   chat.scrollTop = chat.scrollHeight;
-  busy = false; send.disabled = !getKey(); attachBtn.disabled = !getKey(); input.focus();
+  busy = false; send.disabled = !getKey(); attachBtn.disabled = !getKey(); imgBtn.disabled = !getKey(); input.focus();
 }
 
 refreshKeyUI();
