@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OmniRoute Chat</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
+    --txt:#e8eaf0; --mut:#9aa0ae; --acc:#f5a524; --acc-d:#c77f0a;
+    --ubub:#2b3a55; --abub:#1e222b; --err:#5a2323;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{margin:0; background:var(--bg); color:var(--txt);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    display:flex; flex-direction:column; height:100dvh;}
+  header{display:flex; align-items:center; gap:8px; padding:10px 12px;
+    background:var(--panel); border-bottom:1px solid var(--line);
+    position:sticky; top:0; z-index:5;}
+  header .logo{width:28px;height:28px;border-radius:8px;flex:none;
+    background:linear-gradient(135deg,var(--acc),#ff7847);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;color:#1a1206;font-size:15px;}
+  header h1{font-size:16px;margin:0;flex:1;white-space:nowrap;overflow:hidden;}
+  header h1 small{display:block;font-size:10px;color:var(--mut);font-weight:400;}
+  select,button,input,textarea{font:inherit;color:var(--txt);}
+  select{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    padding:7px 8px;font-size:13px;max-width:38vw;}
+  .iconbtn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    padding:7px 10px;font-size:14px;cursor:pointer;}
+  .iconbtn:active{transform:scale(.96);}
+  #status{font-size:12px;color:var(--mut);text-align:center;padding:6px 12px;
+    min-height:28px;border-bottom:1px solid var(--line);background:var(--panel);}
+  #status.busy{color:var(--acc);}
+  #status.err{color:#ff9a9a;}
+  #chat{flex:1;overflow-y:auto;padding:14px 12px 8px;display:flex;
+    flex-direction:column;gap:10px;}
+  .msg{max-width:88%;padding:10px 13px;border-radius:14px;font-size:15px;
+    line-height:1.5;word-wrap:break-word;white-space:pre-wrap;}
+  .msg.user{align-self:flex-end;background:var(--ubub);border-bottom-right-radius:4px;}
+  .msg.ai{align-self:flex-start;background:var(--abub);border:1px solid var(--line);
+    border-bottom-left-radius:4px;}
+  .msg.err{align-self:stretch;max-width:100%;background:var(--err);
+    border:1px solid #7a3030;font-size:13px;}
+  .msg pre{background:#0b0d11;border:1px solid var(--line);border-radius:8px;
+    padding:8px;overflow-x:auto;font-size:13px;margin:8px 0;}
+  .msg code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em;
+    background:#0b0d11;padding:1px 5px;border-radius:5px;}
+  .msg pre code{background:none;padding:0;}
+  .typing{display:inline-block;}
+  .typing i{display:inline-block;width:6px;height:6px;margin-right:3px;
+    border-radius:50%;background:var(--mut);animation:bl 1s infinite;}
+  .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+  @keyframes bl{0%,100%{opacity:.25}50%{opacity:1}}
+  #composer{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    background:var(--panel);border-top:1px solid var(--line);}
+  #in{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+    padding:11px 12px;font-size:15px;resize:none;max-height:120px;outline:none;}
+  #in:focus{border-color:var(--acc);}
+  #send{background:var(--acc);color:#1a1206;border:none;border-radius:12px;
+    padding:0 18px;font-size:16px;font-weight:700;cursor:pointer;min-height:46px;}
+  #send:disabled{opacity:.45;cursor:default;}
+  #send:active:not(:disabled){transform:scale(.96);}
+  #keycard{margin:14px 12px 0;background:var(--panel);border:1px solid var(--acc-d);
+    border-radius:14px;padding:16px;display:none;}
+  #keycard.show{display:block;}
+  #keycard h2{font-size:15px;margin:0 0 8px;}
+  #keycard p{font-size:13px;color:var(--mut);margin:0 0 10px;line-height:1.5;}
+  #keycard .row{display:flex;gap:8px;}
+  #key{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:10px;font-size:14px;min-width:0;}
+  #savekey{background:var(--acc);color:#1a1206;border:none;border-radius:10px;
+    padding:10px 16px;font-weight:700;cursor:pointer;}
+  #keyrow{display:none;gap:8px;align-items:center;font-size:12px;color:var(--mut);
+    padding:8px 12px;}
+  #keyrow.show{display:flex;}
+  #keyrow button{background:none;border:1px solid var(--line);border-radius:6px;
+    color:var(--mut);font-size:11px;padding:3px 8px;cursor:pointer;}
+  .hint{font-size:12px;color:var(--mut);text-align:center;padding:4px;}
+  .hint b{color:var(--txt);}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">O</div>
+  <h1>OmniRoute Chat<small>your private AI gateway</small></h1>
+  <select id="model" title="Model">
+    <option value="auto" selected>auto (recommended)</option>
+    <option value="ddgw/claude-haiku-4-5">claude-haiku-4-5</option>
+    <option value="ddgw/gpt-5.6-luna">gpt-5.6-luna</option>
+    <option value="ddgw/gpt-5.4-mini">gpt-5.4-mini</option>
+    <option value="ddgw/mistral-small-2603">mistral-small-2603</option>
+    <option value="__custom">custom…</option>
+  </select>
+  <button class="iconbtn" id="newchat" title="New chat">＋</button>
+</header>
+<div id="status"></div>
+<div id="keyrow"><span>API key saved on this device</span><button id="changekey">change</button><button id="forgetkey">forget</button></div>
+<div id="chat"></div>
+<div id="keycard">
+  <h2>🔑 Connect your API key</h2>
+  <p>Paste the <b>manas-main</b> key once. It stays saved in <b>this browser only</b> — it is never sent anywhere except your own OmniRoute server.</p>
+  <div class="row">
+    <input id="key" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false">
+    <button id="savekey">Save</button>
+  </div>
+</div>
+<div id="composer">
+  <textarea id="in" rows="1" placeholder="Message…" disabled></textarea>
+  <button id="send" disabled>➤</button>
+</div>
+
+<script>
+(function(){
+"use strict";
+const BASE = "https://omniroute-4lx0.onrender.com/v1";
+const $ = id => document.getElementById(id);
+const chat=$("chat"), status=$("status"), input=$("in"), send=$("send"),
+      modelSel=$("model"), keycard=$("keycard"), keyInput=$("key"), keyrow=$("keyrow");
+let history = [], busy = false, wokeUp = false;
+
+const getKey = () => localStorage.getItem("omni_key") || "";
+function refreshKeyUI(){
+  const has = !!getKey();
+  keycard.classList.toggle("show", !has);
+  keyrow.classList.toggle("show", has);
+  input.disabled = !has; send.disabled = !has;
+}
+$("savekey").onclick = () => {
+  const v = keyInput.value.trim();
+  if(!v){ keyInput.focus(); return; }
+  localStorage.setItem("omni_key", v); keyInput.value = "";
+  refreshKeyUI(); setStatus("Key saved. Say hello below.");
+  input.focus();
+};
+$("changekey").onclick = () => { keycard.classList.add("show"); keyInput.focus(); };
+$("forgetkey").onclick = () => {
+  if(confirm("Forget the saved API key on this device?")){
+    localStorage.removeItem("omni_key"); refreshKeyUI();
+  }
+};
+modelSel.onchange = () => {
+  if(modelSel.value === "__custom"){
+    const c = prompt("Model id (e.g. ddgw/gpt-5.4-mini):", "ddgw/gpt-5.4-mini");
+    if(c && c.trim()){
+      const o = document.createElement("option");
+      o.value = c.trim(); o.textContent = c.trim(); o.selected = true;
+      modelSel.insertBefore(o, modelSel.lastChild);
+    } else modelSel.value = "auto";
+  }
+};
+$("newchat").onclick = () => { history = []; chat.innerHTML = ""; setStatus(""); };
+
+function setStatus(t, cls){ status.textContent = t; status.className = cls || ""; }
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function md(s){
+  let out = esc(s), codes = [];
+  out = out.replace(/```(\w*)\n([\s\S]*?)```/g, (m,l,c)=>{
+    codes.push("<pre><code>"+c.replace(/\n$/,""")+"</code></pre>"); return "\u0000"+(codes.length-1)+"\u0000";
+  });
+  out = out.replace(/`([^`\n]+)`/g, "<code>$1</code>")
+           .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+           .replace(/(^|\n)#{1,4}\s?([^\n]+)/g, "$1<b>$2</b>")
+           .replace(/(^|\n)[-*]\s/g, "$1• ");
+  codes.forEach((c,i)=>{ out = out.replace("\u0000"+i+"\u0000", c); });
+  return out;
+}
+function addMsg(role, html){
+  const d = document.createElement("div");
+  d.className = "msg " + (role === "user" ? "user" : "ai");
+  d.innerHTML = html; chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight; return d;
+}
+function addErr(t, retry){
+  const d = document.createElement("div"); d.className = "msg err";
+  d.innerHTML = esc(t);
+  if(retry){
+    const b = document.createElement("button");
+    b.textContent = "Retry"; b.className = "iconbtn"; b.style.marginTop = "8px";
+    b.onclick = () => { d.remove(); doSend(true); };
+    d.appendChild(document.createElement("br")); d.appendChild(b);
+  }
+  chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+}
+input.addEventListener("input", ()=>{
+  input.style.height = "auto";
+  input.style.height = Math.min(input.scrollHeight, 120) + "px";
+});
+input.addEventListener("keydown", e=>{
+  if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); doSend(); }
+});
+send.onclick = () => doSend();
+
+async function wakeNote(){
+  if(wokeUp) return;
+  setStatus("Waking up the server — free tier sleeps, first reply can take up to a minute…", "busy");
+}
+async function callAPI(payload, onToken){
+  const key = getKey();
+  const res = await fetch(BASE + "/chat/completions", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if(!res.ok){
+    let msg = "Server error " + res.status;
+    try{ const j = await res.json(); if(j.error) msg = (j.error.message || j.error.code || msg); }catch(e){}
+    throw new Error(msg);
+  }
+  if(payload.stream && res.body){
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = "", text = "";
+    for(;;){
+      const {done, value} = await reader.read();
+      if(done) break;
+      buf += dec.decode(value, {stream:true});
+      let idx;
+      while((idx = buf.indexOf("\n")) >= 0){
+        const line = buf.slice(0, idx).trim(); buf = buf.slice(idx + 1);
+        if(!line.startsWith("data:")) continue;
+        const data = line.slice(5).trim();
+        if(data === "[DONE]") continue;
+        try{
+          const j = JSON.parse(data);
+          const t = j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content;
+          if(t){ text += t; onToken(text); }
+        }catch(e){}
+      }
+    }
+    return text;
+  }
+  const j = await res.json();
+  return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "";
+}
+
+async function doSend(isRetry){
+  if(busy) return;
+  const text = (isRetry ? lastUser : input.value).trim();
+  if(!text || !getKey()) return;
+  busy = true; send.disabled = true;
+  if(!isRetry){ addMsg("user", esc(text)); input.value = ""; input.style.height = "auto"; }
+  history.push({role:"user", content:text});
+  const ai = addMsg("ai", '<span class="typing"><i></i><i></i><i></i></span>');
+  if(!wokeUp) wakeNote();
+  const payload = { model: modelSel.value, messages: history.slice(-20), stream: true, max_tokens: 2000 };
+  try{
+    let full = "";
+    try{
+      full = await callAPI(payload, t => { ai.innerHTML = md(t); chat.scrollTop = chat.scrollHeight; });
+    }catch(e){
+      payload.stream = false;
+      full = await callAPI(payload);
+    }
+    if(!full.trim()) throw new Error("Empty reply from server");
+    wokeUp = true;
+    ai.innerHTML = md(full);
+    history.push({role:"assistant", content:full});
+    setStatus("");
+  }catch(e){
+    ai.remove(); history.pop();
+    if(!/fetch|network|failed|waking|wake/i.test(e.message)) wokeUp = true;
+    setStatus("Something went wrong.", "err");
+    addErr("⚠️ " + e.message + (wokeUp ? "" : " (If the server was asleep, wait a few seconds and retry.)"), true);
+  }
+  chat.scrollTop = chat.scrollHeight;
+  busy = false; send.disabled = false; input.focus();
+}
+let lastUser = "";
+const _doSend = doSend;
+doSend = async function(isRetry){ if(!isRetry) lastUser = input.value; return _doSend(isRetry); };
+
+refreshKeyUI();
+if(!getKey()) setStatus("Paste your API key above to begin.");
+})();
+</script>
+</body>
+</html>
