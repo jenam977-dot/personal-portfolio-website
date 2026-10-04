@@ -143,7 +143,7 @@ function refreshKeyUI(){
 
 function showKeyError(t){ merr.style.display = "block"; merr.textContent = t; }
 msave.onclick = async () => {
-  const v = mkey.value.trim();
+  const v = mkey.value.replace(/\s+/g, "");
   if(!v){ mkey.focus(); return; }
   merr.style.display = "none";
   msave.disabled = true; msave.textContent = "Checking…";
