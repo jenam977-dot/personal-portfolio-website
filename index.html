@@ -203,6 +203,7 @@ a{color:inherit}
 /* the dailies — chat transcript as found footage */
 .dailies{background:var(--bay-deep);padding:clamp(1.6rem,3.5vw,2.8rem)}
 .dailies-label{font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:0 0 1.2rem}
+.dailies-label span{display:block;letter-spacing:.08em;text-transform:none;font-size:.78rem;color:var(--ash);margin-top:.35rem}
 .chat{display:flex;flex-direction:column;gap:.55rem;max-width:26rem}
 .bubble{
   padding:.65rem 1rem;font-size:.92rem;line-height:1.5;max-width:88%;
@@ -426,7 +427,7 @@ body.ready .hero-fade{transition-delay:.35s}
       <h2 class="scene-title" id="projects-title">Featured projects.</h2>
       <p class="scene-lede">Work in progress, shown honestly: what each project addresses, how it is being built, and where it stands today.</p>
 
-      <!-- Project 01 — feature treatment -->
+      <!-- Project 01: feature treatment -->
       <article class="project-feature" aria-labelledby="p1-title">
         <div class="project-feature-head">
           <span class="status">In development</span>
@@ -434,7 +435,7 @@ body.ready .hero-fade{transition-delay:.35s}
           <p class="project-desc">A conversational booking assistant for salons and local service businesses, designed to reduce repetitive appointment coordination.</p>
           <a class="repo-link" href="https://github.com/jenam977-dot/salonflow">salonflow on GitHub</a>
           <a class="demo-link" href="demo.html">Try the live demo</a>
-          <p class="demo-note">Interactive walkthrough of the booking flow — uses sample data, not real bookings.</p>
+          <p class="demo-note">Interactive walkthrough of the booking flow. Uses sample data, not real bookings.</p>
         </div>
         <div class="project-body">
           <div class="project-notes">
@@ -447,7 +448,7 @@ body.ready .hero-fade{transition-delay:.35s}
             </div>
           </div>
           <div class="dailies">
-            <p class="dailies-label">Dailies — conceptual interface</p>
+            <p class="dailies-label">Dailies <span>conceptual interface</span></p>
             <div class="chat" aria-label="Conceptual booking conversation">
               <p class="bubble them">I&rsquo;d like to book an appointment.</p>
               <p class="bubble me">Choose an available time.<br>10:00&nbsp;&nbsp;11:30&nbsp;&nbsp;14:00&nbsp;&nbsp;16:30</p>
@@ -458,7 +459,7 @@ body.ready .hero-fade{transition-delay:.35s}
         </div>
       </article>
 
-      <!-- Projects 02 + 03 — b-roll pair -->
+      <!-- Projects 02 + 03: b-roll pair -->
       <div class="broll">
         <article aria-labelledby="p2-title">
           <span class="status">Experiment</span>
@@ -466,7 +467,7 @@ body.ready .hero-fade{transition-delay:.35s}
           <p class="project-desc">An ongoing technical sandbox for understanding how model access, cloud permissions, API calls, automation, and serverless building blocks connect.</p>
           <p class="note-text" style="margin-top:1.2rem">AI services are most useful when access, orchestration, and application logic work as one system.</p>
           <p class="note-label">What it explores</p>
-          <p class="note-text">Amazon Bedrock, IAM boundaries, Python integrations, AI APIs, and serverless concepts — without presenting the work as production-ready.</p>
+          <p class="note-text">Amazon Bedrock, IAM boundaries, Python integrations, AI APIs, and serverless concepts. Explored as a sandbox, not presented as production-ready.</p>
           <div class="tagrow" aria-label="Technologies">
             <span class="tag">AWS</span><span class="tag">Amazon Bedrock</span><span class="tag">IAM</span><span class="tag">AI APIs</span>
           </div>
@@ -474,7 +475,7 @@ body.ready .hero-fade{transition-delay:.35s}
         <article aria-labelledby="p3-title">
           <span class="status">Workflow study</span>
           <h3 class="project-title" id="p3-title">AI-Assisted Documentary Workflow</h3>
-          <p class="project-desc">A practical production approach that uses AI as support around the edit — not as a substitute for the story, footage, or editorial decisions.</p>
+          <p class="project-desc">A practical production approach that uses AI as support around the edit, not as a substitute for the story, footage, or editorial decisions.</p>
           <p class="note-text" style="margin-top:1.2rem">Solo documentary production requires research, structure, visuals, narration, editing, and finishing to stay connected.</p>
           <ul class="workflow-steps">
             <li><span class="step-name">Research</span><span class="step-desc">Sources, story questions, structure</span></li>
@@ -567,6 +568,8 @@ body.ready .hero-fade{transition-delay:.35s}
   </section>
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -633,6 +636,30 @@ body.ready .hero-fade{transition-delay:.35s}
     }
   });
   movePlayhead(clips[0]);
+
+  /* projects: restrained scroll motion (gsap) — content stays visible without it */
+  if(!reduceMotion && window.gsap && window.ScrollTrigger){
+    gsap.registerPlugin(ScrollTrigger);
+
+    /* the dailies play like a conversation arriving, one message at a time */
+    var bubbles = gsap.utils.toArray("#projects .chat .bubble");
+    if(bubbles.length){
+      gsap.set(bubbles, {opacity:0, y:14});
+      gsap.to(bubbles, {
+        opacity:1, y:0, duration:.45, ease:"power2.out", stagger:.22,
+        scrollTrigger:{trigger:"#projects .dailies", start:"top 78%", once:true}
+      });
+    }
+
+    /* feature head and b-roll pair rise in gently as they enter */
+    gsap.utils.toArray("#projects .project-feature-head, #projects .broll article").forEach(function(el){
+      gsap.set(el, {opacity:0, y:26});
+      gsap.to(el, {
+        opacity:1, y:0, duration:.9, ease:"power2.out",
+        scrollTrigger:{trigger:el, start:"top 84%", once:true}
+      });
+    });
+  }
 
   /* camera timecode — ticks only while the hero is on screen */
   var tc = document.getElementById("timecode");
