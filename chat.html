@@ -217,7 +217,13 @@ async function loadModels(){
   try{
     const j = await apiGet("/models");
     ids = (j.data || []).map(m => m.id).filter(id => id && !MEDIA_PREFIX.test(id));
-    if(!ids.length) return;
+    // Only show providers with working keys on this gateway: the manas-free combo
+    // and gemini/* chat models. (ddgw/cxa/dva/oc/aug/cfp/zc/unc/no-think have no
+    // keys configured — they 503 or silently fall back to Gemini, so listing them
+    // only misleads. embedding/tts entries are not chat models.)
+    ids = ids.filter(id => id === "manas-free" ||
+        (id.indexOf("gemini/") === 0 && !/embedding|tts/i.test(id)));
+    if(!ids.length) return;   // keep the fallback options
   }catch(e){ return; }
   const groups = {};
   ids.forEach(id => {
