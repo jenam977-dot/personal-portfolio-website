@@ -317,6 +317,7 @@
     .project-facts dd { margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.52; }
     .tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 30px; }
     .tag { padding: 5px 9px; border: 1px solid var(--line); color: var(--muted); font-size: .68rem; }
+    .project-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
     .project-visual { position: relative; min-height: 420px; overflow: hidden; background: var(--surface-2); }
     .visual-label { position: absolute; inset: 18px 18px auto auto; z-index: 4; padding: 5px 8px; border: 1px solid var(--line); background: rgba(9,10,9,.82); color: var(--muted); font-size: .6rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
     .ui-stage { height: 100%; min-height: 520px; display: grid; place-items: center; padding: clamp(26px, 5vw, 60px); }
@@ -560,7 +561,12 @@
                   <div><dt>What it does</dt><dd>Guides a customer through available times and records an appointment in a focused workflow.</dd></div>
                 </dl>
               </div>
-              <div class="tags" aria-label="Technologies used"><span class="tag">Python</span><span class="tag">FastAPI</span><span class="tag">SQLite</span><span class="tag">WhatsApp automation</span></div>
+              <div>
+                <div class="tags" aria-label="Technologies used"><span class="tag">Python</span><span class="tag">FastAPI</span><span class="tag">SQLite</span><span class="tag">WhatsApp automation</span></div>
+                <div class="project-links">
+                  <a class="button" href="https://github.com/jenam977-dot/salonflow" target="_blank" rel="noopener noreferrer">GitHub <span class="arrow" aria-hidden="true">↗</span></a>
+                </div>
+              </div>
             </div>
             <div class="project-visual ui-stage" role="img" aria-label="Conceptual mobile interface illustrating a WhatsApp booking conversation">
               <span class="visual-label">Conceptual interface</span>
