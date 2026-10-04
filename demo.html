@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <title>Salon WhatsApp Booking Assistant — Demo</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --page: #eef3f0;
+      --ink: #17211e;
+      --muted: #62706b;
+      --panel: #ffffff;
+      --panel-soft: #f6f8f7;
+      --line: #dce4e0;
+      --green-900: #075e54;
+      --green-800: #0c6f62;
+      --green-600: #128c7e;
+      --green-500: #21a38e;
+      --green-100: #dcf8c6;
+      --green-050: #edf9f4;
+      --chat-wall: #efeae2;
+      --incoming: #ffffff;
+      --outgoing: #dcf8c6;
+      --bubble-ink: #15231f;
+      --chip: #ffffff;
+      --danger-soft: #f2efeb;
+      --danger-text: #8b8178;
+      --shadow: 0 20px 60px rgba(18, 47, 39, .12);
+      --phone-shadow: 0 20px 50px rgba(13, 40, 33, .22);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --page: #0f1715;
+        --ink: #edf5f1;
+        --muted: #9caeaa;
+        --panel: #16221f;
+        --panel-soft: #1b2925;
+        --line: #2b3b36;
+        --green-900: #0f6d61;
+        --green-800: #148276;
+        --green-600: #22a897;
+        --green-500: #39c0a8;
+        --green-100: #235246;
+        --green-050: #18352e;
+        --chat-wall: #18221f;
+        --incoming: #26332f;
+        --outgoing: #255144;
+        --bubble-ink: #f2f6f4;
+        --chip: #24332f;
+        --danger-soft: #2a302e;
+        --danger-text: #a9b0ad;
+        --shadow: 0 20px 60px rgba(0, 0, 0, .32);
+        --phone-shadow: 0 24px 60px rgba(0, 0, 0, .48);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { min-width: 320px; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(18,140,126,.10), transparent 27rem),
+        var(--page);
+      color: var(--ink);
+      font-family: "DM Sans", sans-serif;
+    }
+    button, input { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 20px;
+    }
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(360px, 460px) minmax(440px, 1fr);
+      gap: 36px;
+      align-items: start;
+    }
+    .demo-column { min-width: 0; }
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 2px 14px;
+    }
+    .progress-copy { font-family: "Manrope", sans-serif; font-size: 14px; font-weight: 800; }
+    .progress-track {
+      width: 154px;
+      height: 6px;
+      background: var(--line);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 7px;
+    }
+    .progress-fill {
+      width: 14.285%;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--green-600);
+      transition: width .35s ease;
+    }
+    .replay {
+      border: 0;
+      background: transparent;
+      color: var(--green-800);
+      font-weight: 700;
+      padding: 9px 2px 9px 12px;
+      cursor: pointer;
+    }
+    .replay:hover { text-decoration: underline; }
+    .phone {
+      width: 100%;
+      height: min(720px, calc(100vh - 130px));
+      min-height: 610px;
+      background: var(--chat-wall);
+      border: 8px solid #18211e;
+      border-radius: 34px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--phone-shadow);
+      position: relative;
+    }
+    .phone::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 104px; height: 20px;
+      background: #18211e;
+      border-radius: 0 0 14px 14px;
+      z-index: 5;
+    }
+    .chat-header {
+      background: var(--green-900);
+      color: white;
+      min-height: 72px;
+      padding: 23px 16px 10px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      flex: 0 0 auto;
+    }
+    .avatar {
+      width: 38px; height: 38px; flex: 0 0 auto;
+      border-radius: 50%;
+      background: #fff;
+      color: var(--green-900);
+      display: grid;
+      place-items: center;
+    }
+    .avatar svg { width: 21px; height: 21px; }
+    .contact { min-width: 0; flex: 1; }
+    .contact-name { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .contact-status { font-size: 11px; color: rgba(255,255,255,.76); margin-top: 2px; }
+    .header-icons { display: flex; gap: 15px; align-items: center; }
+    .header-icons svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+    .chat-area {
+      min-height: 0;
+      flex: 1;
+      overflow-y: auto;
+      padding: 17px 13px 22px;
+      scroll-behavior: smooth;
+      background-color: var(--chat-wall);
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cg fill='none' stroke='%237a8a82' stroke-opacity='.08' stroke-width='1'%3E%3Cpath d='M14 17c8 0 8 10 0 10S6 17 14 17zm57 0 8 8m-8 0 8-8M43 49c5-9 15-9 20 0-5 9-15 9-20 0zM9 72l12-6 3 13zm56 5c0-7 11-7 11 0s-11 7-11 0z'/%3E%3C/g%3E%3C/svg%3E");
+    }
+    .day-label {
+      width: max-content;
+      margin: 0 auto 14px;
+      background: rgba(255,255,255,.74);
+      color: #5a6964;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      box-shadow: 0 1px 1px rgba(0,0,0,.08);
+    }
+    @media (prefers-color-scheme: dark) { .day-label { background: rgba(38,51,47,.88); color: #c3cdc9; } }
+    .message-row { display: flex; margin: 0 0 7px; animation: bubbleIn .28s ease both; }
+    .message-row.incoming { justify-content: flex-start; }
+    .message-row.outgoing { justify-content: flex-end; }
+    .bubble {
+      max-width: 86%;
+      padding: 8px 9px 6px;
+      border-radius: 8px;
+      color: var(--bubble-ink);
+      box-shadow: 0 1px 1px rgba(0,0,0,.10);
+      font-size: 13px;
+      line-height: 1.42;
+      position: relative;
+    }
+    .incoming .bubble { background: var(--incoming); border-top-left-radius: 2px; }
+    .outgoing .bubble { background: var(--outgoing); border-top-right-radius: 2px; }
+    .bubble .meta { display: inline-flex; float: right; gap: 3px; align-items: center; margin: 5px 0 0 10px; font-size: 9px; color: #75817d; line-height: 1; }
+    .ticks { color: #2b95c9; font-size: 11px; letter-spacing: -3px; padding-right: 2px; }
+    .services { margin: 8px 0 2px; padding: 0; list-style: none; }
+    .services li { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid rgba(110,125,118,.15); }
+    .services li:last-child { border: 0; }
+    .services strong { white-space: nowrap; font-weight: 700; }
+    .typing .bubble { padding: 11px 13px; display: flex; gap: 4px; }
+    .typing i { width: 6px; height: 6px; background: #86938e; border-radius: 50%; animation: blink 1s infinite; }
+    .typing i:nth-child(2) { animation-delay: .14s; }
+    .typing i:nth-child(3) { animation-delay: .28s; }
+    .composer {
+      flex: 0 0 auto;
+      background: color-mix(in srgb, var(--chat-wall) 88%, var(--panel));
+      border-top: 1px solid rgba(80,100,92,.14);
+      padding: 9px 8px 10px;
+    }
+    .quick-replies { display: flex; gap: 7px; flex-wrap: wrap; padding: 0 3px 8px; max-height: 108px; overflow-y: auto; }
+    .quick-replies:empty { padding: 0; }
+    .quick {
+      border: 1px solid color-mix(in srgb, var(--green-600) 48%, var(--line));
+      background: var(--chip);
+      color: var(--green-800);
+      border-radius: 18px;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .18s ease, color .18s ease, transform .18s ease;
+    }
+    .quick:hover:not(:disabled) { background: var(--green-600); color: white; transform: translateY(-1px); }
+    .quick:focus-visible, .send:focus-visible, .simulate:focus-visible, .replay:focus-visible { outline: 3px solid #f1b94c; outline-offset: 2px; }
+    .quick:disabled { border-style: dashed; border-color: #aaa39c; color: var(--danger-text); background: var(--danger-soft); cursor: not-allowed; }
+    .input-row { display: flex; gap: 7px; align-items: center; }
+    .input-shell { flex: 1; background: var(--incoming); border-radius: 22px; display: flex; align-items: center; padding: 0 6px 0 13px; min-width: 0; }
+    #chatInput { flex: 1; min-width: 0; height: 42px; border: 0; outline: 0; background: transparent; color: var(--bubble-ink); font-size: 12px; }
+    #chatInput::placeholder { color: #89938f; }
+    .send {
+      width: 41px; height: 41px; border: 0; border-radius: 50%; background: var(--green-600); color: #fff; display: grid; place-items: center; cursor: pointer;
+    }
+    .send:disabled { opacity: .45; cursor: not-allowed; }
+    .send svg { width: 18px; height: 18px; fill: currentColor; }
+    .input-error { color: #b23b32; font-size: 10px; font-weight: 700; padding: 0 12px 7px; display: none; }
+    .input-error.show { display: block; }
+    .simulate {
+      display: none;
+      width: calc(100% - 6px);
+      margin: 0 3px 8px;
+      border: 0;
+      border-radius: 10px;
+      background: #e7a42b;
+      color: #231a08;
+      font-weight: 800;
+      padding: 10px 12px;
+      cursor: pointer;
+      box-shadow: 0 2px 0 rgba(117,72,0,.3);
+    }
+    .simulate.show { display: block; animation: bubbleIn .28s ease both; }
+    .owner-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-top: 55px;
+      min-width: 0;
+    }
+    .owner-top { padding: 26px 28px 22px; border-bottom: 1px solid var(--line); }
+    .owner-context { color: var(--green-800); font-size: 12px; font-weight: 800; margin-bottom: 5px; }
+    .owner-title-row { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+    .owner-title { font-family: "Manrope", sans-serif; font-size: clamp(24px, 3vw, 34px); line-height: 1.1; margin: 0; letter-spacing: -.035em; }
+    .live { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #20a17e; box-shadow: 0 0 0 4px rgba(32,161,126,.13); }
+    .stats { display: flex; gap: 10px; margin-top: 20px; }
+    .stat { background: var(--panel-soft); padding: 12px 15px; border-radius: 12px; min-width: 130px; }
+    .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .stat-value { font-family: "Manrope", sans-serif; font-size: 24px; font-weight: 800; margin-top: 2px; }
+    .bookings { padding: 7px 28px 26px; }
+    .booking {
+      display: grid;
+      grid-template-columns: 78px minmax(0,1fr) auto;
+      gap: 14px;
+      align-items: center;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--line);
+      animation: ownerIn .36s ease both;
+    }
+    .booking:last-child { border-bottom: 0; }
+    .booking-time { font-family: "Manrope", sans-serif; font-size: 14px; font-weight: 800; }
+    .booking-name { font-weight: 800; font-size: 14px; }
+    .booking-service { color: var(--muted); margin-top: 3px; font-size: 12px; }
+    .status { justify-self: end; text-align: right; font-size: 11px; font-weight: 800; color: var(--green-800); }
+    .new-badge { display: inline-block; background: #e7a42b; color: #241b08; border-radius: 99px; padding: 3px 8px; margin-bottom: 6px; }
+    .owner-toast {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 20;
+      background: #16251f;
+      color: white;
+      border-radius: 12px;
+      padding: 13px 17px;
+      box-shadow: 0 12px 32px rgba(0,0,0,.28);
+      font-weight: 800;
+      font-size: 13px;
+      transform: translateY(-90px);
+      opacity: 0;
+      transition: transform .32s ease, opacity .32s ease;
+    }
+    .owner-toast.show { transform: translateY(0); opacity: 1; }
+    footer { text-align: center; color: var(--muted); font-size: 12px; padding: 22px 0 4px; }
+    @keyframes bubbleIn { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }
+    @keyframes ownerIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+    @keyframes blink { 0%, 60%, 100% { transform: translateY(0); opacity: .4; } 30% { transform: translateY(-3px); opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+    @media (max-width: 850px) {
+      .page { width: min(100% - 22px, 560px); padding-top: 18px; }
+      .workspace { grid-template-columns: 1fr; gap: 24px; }
+      .owner-panel { margin-top: 0; }
+      .phone { height: 680px; min-height: 600px; }
+      .owner-toast { top: 12px; left: 12px; right: 12px; text-align: center; }
+    }
+    @media (max-width: 470px) {
+      .page { width: 100%; padding: 14px 0 12px; }
+      .control-row { padding: 0 15px; }
+      .phone { border-left-width: 0; border-right-width: 0; border-radius: 0; height: 680px; box-shadow: none; }
+      .phone::before { display: none; }
+      .chat-header { padding-top: 12px; min-height: 62px; }
+      .owner-panel { border-radius: 0; border-left: 0; border-right: 0; }
+      .owner-top, .bookings { padding-left: 18px; padding-right: 18px; }
+      .booking { grid-template-columns: 66px minmax(0,1fr); gap: 10px; }
+      .status { grid-column: 2; justify-self: start; text-align: left; }
+      .stats { flex-wrap: wrap; }
+      .stat { flex: 1; min-width: 120px; }
+      footer { padding-left: 16px; padding-right: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <main class="workspace">
+      <section class="demo-column" aria-label="Interactive customer booking demo">
+        <div class="control-row">
+          <div>
+            <div class="progress-copy" id="progressLabel">Step 1 of 7</div>
+            <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+          </div>
+          <button class="replay" id="replayBtn" type="button">↺ Replay demo</button>
+        </div>
+        <div class="phone">
+          <header class="chat-header">
+            <div class="avatar" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M6 3h12v4H6zM5 8h14l-1 13H6z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M9 11v7m6-7v7" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+            </div>
+            <div class="contact">
+              <div class="contact-name">Glow &amp; Grace Unisex Salon</div>
+              <div class="contact-status" id="contactStatus">online</div>
+            </div>
+            <div class="header-icons" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M15 10l4-3v10l-4-3zM4 6h11v12H4z"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M8 3l3 5-2 2c2 4 3 5 7 7l2-2 3 3c-1 3-3 4-5 3C8 18 3 13 3 7c0-2 2-4 5-4z"/></svg>
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/></svg>
+            </div>
+          </header>
+          <div class="chat-area" id="chatArea" role="log" aria-live="polite">
+            <div class="day-label">TODAY</div>
+          </div>
+          <div class="composer">
+            <button type="button" class="simulate" id="simulateBtn">⏩ Simulate: 2 hours before appointment</button>
+            <div class="quick-replies" id="quickReplies"></div>
+            <div class="input-error" id="inputError">Enter a valid 10-digit mobile number.</div>
+            <form class="input-row" id="inputForm">
+              <div class="input-shell"><input id="chatInput" type="text" placeholder="Choose a quick reply" autocomplete="off" disabled aria-label="Chat reply" /></div>
+              <button class="send" id="sendBtn" type="submit" disabled aria-label="Send message">
+                <svg viewBox="0 0 24 24"><path d="M3 20.5v-7l9-1.5-9-1.5v-7L22 12z"/></svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section class="owner-panel" aria-labelledby="bookingsTitle">
+        <div class="owner-top">
+          <div class="owner-context">Salon Owner — Live View</div>
+          <div class="owner-title-row">
+            <h1 class="owner-title" id="bookingsTitle">Upcoming Bookings</h1>
+            <div class="live"><span class="live-dot"></span> Live</div>
+          </div>
+          <div class="stats">
+            <div class="stat"><div class="stat-label">Upcoming bookings</div><div class="stat-value" id="bookingCount">2</div></div>
+            <div class="stat"><div class="stat-label">Pending</div><div class="stat-value" id="pendingCount">0</div></div>
+          </div>
+        </div>
+        <div class="bookings" id="bookingsList">
+          <article class="booking">
+            <div class="booking-time">10:00 AM</div>
+            <div><div class="booking-name">Amit Sharma</div><div class="booking-service">Haircut + Beard</div></div>
+            <div class="status">Confirmed</div>
+          </article>
+          <article class="booking">
+            <div class="booking-time">12:30 PM</div>
+            <div><div class="booking-name">Priya Nair</div><div class="booking-service">Clean-up Facial</div></div>
+            <div class="status">Confirmed</div>
+          </article>
+        </div>
+      </section>
+    </main>
+    <footer>Interactive demo — tap the quick-reply buttons to play the customer.</footer>
+  </div>
+  <div class="owner-toast" id="ownerToast" role="status">🔔 New booking received</div>
+
+  <script>
+    (function () {
+      var chatArea = document.getElementById('chatArea');
+      var quickReplies = document.getElementById('quickReplies');
+      var input = document.getElementById('chatInput');
+      var sendBtn = document.getElementById('sendBtn');
+      var form = document.getElementById('inputForm');
+      var inputError = document.getElementById('inputError');
+      var progressLabel = document.getElementById('progressLabel');
+      var progressFill = document.getElementById('progressFill');
+      var simulateBtn = document.getElementById('simulateBtn');
+      var bookingCount = document.getElementById('bookingCount');
+      var pendingCount = document.getElementById('pendingCount');
+      var bookingsList = document.getElementById('bookingsList');
+      var ownerToast = document.getElementById('ownerToast');
+      var contactStatus = document.getElementById('contactStatus');
+      var timers = [];
+      var state;
+      var appointmentDate = 'Mon, 5 Oct';
+      var slotDate = 'Mon 5 Oct';
+
+      var serviceOptions = [
+        { label: 'Haircut ₹249', value: "Men's Haircut", price: 249 },
+        { label: 'Haircut + Beard ₹399', value: 'Haircut + Beard Trim', price: 399 },
+        { label: 'Head Massage ₹349', value: 'Head Massage (20 min)', price: 349 },
+        { label: 'More services', action: 'more' }
+      ];
+
+      function now() {
+        return new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      }
+      function setProgress(n) {
+        state.step = n;
+        progressLabel.textContent = 'Step ' + n + ' of 7';
+        progressFill.style.width = (n / 7 * 100) + '%';
+      }
+      function scrollChat() {
+        requestAnimationFrame(function () { chatArea.scrollTop = chatArea.scrollHeight; });
+      }
+      function addMessage(html, side) {
+        var row = document.createElement('div');
+        row.className = 'message-row ' + side;
+        var tick = side === 'outgoing' ? '<span class="ticks">✓✓</span>' : '';
+        row.innerHTML = '<div class="bubble">' + html + '<span class="meta">' + now() + tick + '</span></div>';
+        chatArea.appendChild(row);
+        scrollChat();
+      }
+      function setQuick(options) {
+        quickReplies.innerHTML = '';
+        options.forEach(function (option) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'quick';
+          b.textContent = option.label;
+          b.disabled = !!option.disabled;
+          b.addEventListener('click', function () { if (!state.busy) option.onClick(); });
+          quickReplies.appendChild(b);
+        });
+      }
+      function setInput(mode) {
+        state.inputMode = mode;
+        inputError.classList.remove('show');
+        if (!mode) {
+          input.value = '';
+          input.disabled = true;
+          sendBtn.disabled = true;
+          input.placeholder = 'Choose a quick reply';
+          input.inputMode = 'text';
+        } else {
+          input.disabled = false;
+          sendBtn.disabled = false;
+          input.placeholder = mode === 'name' ? 'Type your name' : 'Enter 10-digit mobile number';
+          input.inputMode = mode === 'mobile' ? 'numeric' : 'text';
+          input.focus();
+        }
+      }
+      function botReply(html, callback, delay) {
+        state.busy = true;
+        quickReplies.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+        contactStatus.textContent = 'typing…';
+        var typing = document.createElement('div');
+        typing.className = 'message-row incoming typing';
+        typing.innerHTML = '<div class="bubble"><i></i><i></i><i></i></div>';
+        chatArea.appendChild(typing);
+        scrollChat();
+        var id = setTimeout(function () {
+          typing.remove();
+          addMessage(html, 'incoming');
+          contactStatus.textContent = 'online';
+          state.busy = false;
+          if (callback) callback();
+        }, delay || 650);
+        timers.push(id);
+      }
+      function customer(text) { addMessage(text, 'outgoing'); }
+
+      function showServices() {
+        setProgress(2);
+        setQuick([]);
+        setInput(null);
+        botReply('<strong>Here are our popular services:</strong><ul class="services"><li><span>Men\'s Haircut</span><strong>₹249</strong></li><li><span>Haircut + Beard Trim</span><strong>₹399</strong></li><li><span>Head Massage (20 min)</span><strong>₹349</strong></li><li><span>Hair Spa</span><strong>₹999</strong></li><li><span>Clean-up Facial</span><strong>₹799</strong></li><li><span>Manicure + Pedicure</span><strong>₹699</strong></li></ul>Which service would you like?', function () {
+          setQuick(serviceOptions.map(function (s) {
+            return { label: s.label, onClick: function () {
+              if (s.action === 'more') {
+                customer('Show me more services');
+                botReply('You can also choose Hair Spa, Clean-up Facial, or Manicure + Pedicure. For this demo, pick one of the popular options below.', function () { showServiceQuickReplies(); });
+              } else { selectService(s); }
+            }};
+          }));
+        }, 720);
+      }
+      function showServiceQuickReplies() {
+        setQuick(serviceOptions.slice(0, 3).map(function (s) { return { label: s.label, onClick: function () { selectService(s); } }; }));
+      }
+      function selectService(service) {
+        state.service = service.value;
+        state.price = service.price;
+        customer(service.label);
+        setProgress(3);
+        setQuick([]);
+        botReply('Available slots for ' + slotDate + ':', function () {
+          setQuick([
+            { label: '11:00 AM', onClick: function () { selectSlot('11:00 AM'); } },
+            { label: '2:00 PM', onClick: function () { selectSlot('2:00 PM'); } },
+            { label: '4:30 PM', onClick: function () { selectSlot('4:30 PM'); } },
+            { label: '6:00 PM — Booked', disabled: true, onClick: function () {} }
+          ]);
+        });
+      }
+      function selectSlot(slot) {
+        state.slot = slot;
+        customer(slot);
+        setProgress(4);
+        setQuick([]);
+        botReply('Great choice! Please share your name.', function () {
+          setInput('name');
+          setQuick([{ label: 'Rahul', onClick: function () { submitName('Rahul'); } }]);
+        });
+      }
+      function submitName(name) {
+        name = name.trim();
+        if (!name) return;
+        state.name = name;
+        customer(name);
+        input.value = '';
+        setInput(null);
+        setQuick([]);
+        botReply('And your 10-digit mobile number?', function () {
+          setInput('mobile');
+          setQuick([{ label: '98765 43210', onClick: function () { submitMobile('98765 43210'); } }]);
+        });
+      }
+      function submitMobile(value) {
+        var digits = value.replace(/\D/g, '');
+        if (!/^[6-9]\d{9}$/.test(digits)) {
+          inputError.classList.add('show');
+          input.focus();
+          return;
+        }
+        state.mobile = digits;
+        inputError.classList.remove('show');
+        customer(value);
+        setInput(null);
+        setQuick([]);
+        setProgress(5);
+        botReply('✅ <strong>Booking Confirmed!</strong><br><br>💈 Glow &amp; Grace Unisex Salon<br>Service: ' + state.service + ' (₹' + state.price + ')<br>' + appointmentDate + ' at ' + state.slot + '<br>Name: ' + state.name + '<br><br>Please arrive 5 mins early. Show this message at the counter.', function () {
+          addOwnerBooking();
+          simulateBtn.classList.add('show');
+        }, 820);
+      }
+      function addOwnerBooking() {
+        if (state.bookingAdded) return;
+        state.bookingAdded = true;
+        bookingCount.textContent = '3';
+        var card = document.createElement('article');
+        card.className = 'booking';
+        card.id = 'newBooking';
+        card.innerHTML = '<div class="booking-time">' + state.slot + '</div><div><div class="booking-name">' + escapeHtml(state.name) + '</div><div class="booking-service">' + escapeHtml(state.service) + '</div></div><div class="status"><span class="new-badge">New</span><br><span id="newStatus">Confirmed</span></div>';
+        bookingsList.insertBefore(card, bookingsList.firstChild);
+        ownerToast.classList.add('show');
+        timers.push(setTimeout(function () { ownerToast.classList.remove('show'); }, 2600));
+      }
+      function simulateReminder() {
+        if (state.reminderSent) return;
+        state.reminderSent = true;
+        simulateBtn.classList.remove('show');
+        setProgress(6);
+        var status = document.getElementById('newStatus');
+        if (status) status.textContent = 'Reminder sent ✓✓';
+        botReply('⏰ <strong>Reminder:</strong> Hi ' + escapeHtml(state.name) + '! Your appointment at Glow &amp; Grace Unisex Salon is on ' + appointmentDate + ' at ' + state.slot + '. Choose C — Confirm or R — Reschedule.', function () {
+          setQuick([
+            { label: 'C — Confirm', onClick: confirmAppointment },
+            { label: 'R — Reschedule', onClick: reschedule }
+          ]);
+        });
+      }
+      function showDemoComplete(message) {
+        botReply(message + '<br><br>✅ <strong>Demo complete</strong> — this is what your customers would experience.', function () {
+          setQuick([{ label: '↺ Replay demo', onClick: resetDemo }]);
+        });
+      }
+      function confirmAppointment() {
+        customer('C — Confirm');
+        setQuick([]);
+        setProgress(7);
+        showDemoComplete('Thank you, ' + escapeHtml(state.name) + '! Your appointment is confirmed for ' + appointmentDate + ' at ' + state.slot + '.');
+      }
+      function reschedule() {
+        customer('R — Reschedule');
+        setQuick([]);
+        botReply('No problem. Choose a new time for ' + slotDate + ':', function () {
+          setQuick([
+            { label: '11:00 AM', onClick: function () { finishReschedule('11:00 AM'); } },
+            { label: '2:00 PM', onClick: function () { finishReschedule('2:00 PM'); } }
+          ]);
+        });
+      }
+      function finishReschedule(slot) {
+        customer(slot);
+        state.slot = slot;
+        var card = document.getElementById('newBooking');
+        if (card) card.querySelector('.booking-time').textContent = slot;
+        setQuick([]);
+        setProgress(7);
+        showDemoComplete('Done — your appointment has been moved to ' + appointmentDate + ' at ' + slot + '.');
+      }
+      function escapeHtml(value) {
+        var d = document.createElement('div');
+        d.textContent = value;
+        return d.innerHTML;
+      }
+      function resetDemo() {
+        timers.forEach(clearTimeout);
+        timers = [];
+        state = { step: 1, service: '', price: 0, slot: '', name: '', mobile: '', inputMode: null, busy: false, bookingAdded: false, reminderSent: false };
+        Array.from(chatArea.children).forEach(function (child) { if (!child.classList.contains('day-label')) child.remove(); });
+        var added = document.getElementById('newBooking');
+        if (added) added.remove();
+        bookingCount.textContent = '2';
+        pendingCount.textContent = '0';
+        ownerToast.classList.remove('show');
+        simulateBtn.classList.remove('show');
+        contactStatus.textContent = 'online';
+        input.value = '';
+        setInput(null);
+        setProgress(1);
+        botReply('Hi! Welcome to Glow &amp; Grace Unisex Salon 💇‍♀️ How can I help you today?', function () {
+          setQuick([
+            { label: 'Book appointment', onClick: function () { customer('Book appointment'); showServices(); } },
+            { label: 'View services', onClick: function () { customer('View services'); showServices(); } },
+            { label: 'Salon timings', onClick: function () {
+              customer('Salon timings');
+              setQuick([]);
+              botReply('We are open daily from 9:30 AM to 8:00 PM. Would you like to book an appointment?', function () {
+                setQuick([{ label: 'Book appointment', onClick: function () { customer('Book appointment'); showServices(); } }, { label: 'View services', onClick: function () { customer('View services'); showServices(); } }]);
+              });
+            }}
+          ]);
+        }, 520);
+      }
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        if (state.inputMode === 'name') submitName(input.value);
+        else if (state.inputMode === 'mobile') submitMobile(input.value);
+      });
+      simulateBtn.addEventListener('click', simulateReminder);
+      document.getElementById('replayBtn').addEventListener('click', resetDemo);
+      resetDemo();
+    }());
+  </script>
+</body>
+</html>
