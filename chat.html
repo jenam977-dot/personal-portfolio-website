@@ -69,6 +69,7 @@
   #keyrow.show{display:flex;}
   #keyrow button{background:none;border:1px solid var(--line);border-radius:6px;
     color:var(--mut);font-size:11px;padding:3px 8px;cursor:pointer;}
+  /* first-run key modal */
   #keymodal{position:fixed;inset:0;background:rgba(5,6,9,.82);z-index:50;
     display:none;align-items:center;justify-content:center;padding:20px;}
   #keymodal.show{display:flex;}
@@ -161,6 +162,7 @@ function refreshKeyUI(){
   if(!has) setStatus("Add your API key to begin.");
 }
 
+/* ---- key handling ---- */
 function showKeyError(t){ merr.style.display = "block"; merr.textContent = t; }
 msave.onclick = async () => {
   const v = mkey.value.replace(/\s+/g, "");
@@ -187,6 +189,48 @@ $("forgetkey").onclick = () => {
   }
 };
 
+/* ---- dynamic model list (all chat models on the gateway) ---- */
+const MEDIA_PREFIX = /^(aihorde|dva|veo-free|veoaifree-web)\//;
+async function loadModels(){
+  let ids;
+  try{
+    const j = await apiGet("/models");
+    ids = (j.data || []).map(m => m.id).filter(id => id && !MEDIA_PREFIX.test(id));
+    if(!ids.length) return;
+  }catch(e){ return; }
+  const groups = {};
+  ids.forEach(id => {
+    const p = id === "manas-free" ? "manas-free"
+            : (id.indexOf("/") > 0 ? id.slice(0, id.indexOf("/")) : "other");
+    (groups[p] = groups[p] || []).push(id);
+  });
+  Object.keys(groups).forEach(p => groups[p].sort());
+  const prev = modelSel.value;
+  const mkOpt = (v, label) => {
+    const o = document.createElement("option");
+    o.value = v; o.textContent = label || v; return o;
+  };
+  modelSel.innerHTML = "";
+  modelSel.appendChild(mkOpt("auto", "auto (recommended)"));
+  const order = ["manas-free","auto","gemini","ddgw","oc","aug","cxa","cfp","zc","no-think","unc"];
+  const glabel = { "manas-free":"my combo", "auto":"auto routers" };
+  Object.keys(groups).sort((a,b) => {
+    const ia = order.indexOf(a), ib = order.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || (a < b ? -1 : 1);
+  }).forEach(p => {
+    const g = document.createElement("optgroup");
+    g.label = (glabel[p] || p) + " (" + groups[p].length + ")";
+    groups[p].forEach(id => {
+      const short = (id === p || id.indexOf(p + "/") !== 0) ? id : id.slice(p.length + 1);
+      g.appendChild(mkOpt(id, short));
+    });
+    modelSel.appendChild(g);
+  });
+  modelSel.appendChild(mkOpt("__custom", "custom…"));
+  if([...modelSel.options].some(o => o.value === prev)) modelSel.value = prev;
+}
+
+/* ---- model picker ---- */
 modelSel.onchange = () => {
   if(modelSel.value === "__custom"){
     const c = prompt("Model id (e.g. ddgw/gpt-5.4-mini):", "ddgw/gpt-5.4-mini");
@@ -199,10 +243,11 @@ modelSel.onchange = () => {
 };
 $("newchat").onclick = () => { history = []; chat.innerHTML = ""; setStatus(""); pendingAttachments = []; renderPreview(); lastUser = {text:"", atts:[]}; };
 
+/* ---- markdown-lite ---- */
 function md(s){
   let out = esc(s), codes = [];
   out = out.replace(/```(\w*)\n([\s\S]*?)```/g, (m,l,c)=>{
-    codes.push("<pre><code>"+c.replace(/\n$/,"" )+"</code></pre>");
+    codes.push("<pre><code>"+c.replace(/\n$/,"")+"</code></pre>");
     return "%%CB"+(codes.length-1)+"%%";
   });
   out = out.replace(/`([^`\n]+)`/g, "<code>$1</code>")
@@ -213,6 +258,7 @@ function md(s){
   return out;
 }
 
+/* ---- messages ---- */
 function addMsg(role, html){
   const d = document.createElement("div");
   d.className = "msg " + (role === "user" ? "user" : "ai");
@@ -231,6 +277,7 @@ function addErr(t, retryFn){
   chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
 }
 
+/* ---- composer ---- */
 input.addEventListener("input", ()=>{
   input.style.height = "auto";
   input.style.height = Math.min(input.scrollHeight, 120) + "px";
@@ -240,6 +287,7 @@ input.addEventListener("keydown", e=>{
 });
 send.onclick = () => doSend(false);
 
+/* ---- attachments (images + PDFs, read by the model) ---- */
 attachBtn.onclick = () => { if(getKey() && !busy) filepick.click(); };
 filepick.onchange = async () => {
   const room = 4 - pendingAttachments.length;
@@ -326,6 +374,7 @@ function buildMessages(){
   return msgs;
 }
 
+/* ---- api ---- */
 async function apiGet(path, key, signal){
   const res = await fetch(BASE + path, {
     headers: { "Authorization": "Bearer " + (key || getKey()) },
@@ -376,6 +425,7 @@ async function apiChat(payload, onToken, signal){
   return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || "";
 }
 
+/* ---- warm the sleeping server right after key save ---- */
 async function wakeServer(){
   if(serverReady || !getKey()) return;
   setStatus("Waking up the server — free tier sleeps, this can take up to a minute…", "busy");
@@ -388,6 +438,7 @@ async function wakeServer(){
     await apiGet("/models");
     serverReady = true;
     setStatus("Server ready ✓", "ok");
+    loadModels();
     setTimeout(()=>{ if(!busy) setStatus(""); }, 3000);
   }catch(e){
     setStatus("Server didn't answer (" + e.message + ") — your first message will retry.", "err");
@@ -395,6 +446,7 @@ async function wakeServer(){
   clearInterval(tick);
 }
 
+/* ---- send ---- */
 async function doSend(isRetry){
   if(busy || !getKey()) return;
   let text, atts;
