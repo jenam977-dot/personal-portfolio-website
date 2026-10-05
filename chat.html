@@ -148,7 +148,7 @@
 <script>
 (function(){
 "use strict";
-const BASE = "https://omniroute-boot.onrender.com/v1";
+const BASE = "https://mini-gateway-megm.onrender.com/v1";
 const $ = id => document.getElementById(id);
 const chat=$("chat"), status=$("status"), input=$("in"), send=$("send"),
       modelSel=$("model"), keymodal=$("keymodal"), mkey=$("mkey"),
@@ -186,10 +186,11 @@ function promptRekey(){
 /* ---- key handling ---- */
 function showKeyError(t){ merr.style.display = "block"; merr.textContent = t; }
 msave.onclick = async () => {
-  const v = mkey.value.replace(/\s+/g, "");
+  const v = mkey.value.replace(/\s+/g, "");   // strip stray spaces/line-breaks from chat-app pastes
   if(!v){ mkey.focus(); return; }
   merr.style.display = "none";
   msave.disabled = true; msave.textContent = "Checking…";
+  // verify the key against the live server (also wakes it up)
   try{
     await apiGet("/models", v);
     localStorage.setItem("omni_key", v);
@@ -222,7 +223,7 @@ async function loadModels(){
     // keys configured — they 503 or silently fall back to Gemini, so listing them
     // only misleads. embedding/tts entries are not chat models.)
     ids = ids.filter(id => id === "manas-free" ||
-        (id.indexOf("gemini/") === 0 && !/embedding|tts/i.test(id)));
+      (id.indexOf("gemini/") === 0 && !/embedding|tts/i.test(id)));
     if(!ids.length) return;   // keep the fallback options
   }catch(e){ return; }
   const groups = {};
@@ -388,6 +389,7 @@ function userHtml(text, names){
   names.forEach(n => { h += '<span class="fchip">📎 ' + esc(n) + "</span>"; });
   return h || "<i>attachment</i>";
 }
+/* build API messages: keep attachments only on the latest user turn to save context */
 function buildMessages(){
   const msgs = history.slice(-20).map(m => ({role:m.role, content:m.content}));
   let lastU = -1;
@@ -498,7 +500,7 @@ async function wakeServer(){
     await apiGet("/models");
     serverReady = true;
     setStatus("Server ready ✓", "ok");
-    loadModels();
+    loadModels();   // populate the picker with every available chat model
     setTimeout(()=>{ if(!busy) setStatus(""); }, 3000);
   }catch(e){
     setStatus("Server didn't answer (" + e.message + ") — your first message will retry.", "err");
@@ -541,7 +543,7 @@ async function doSend(isRetry){
       }, ctrl.signal);
     }catch(e){
       if(e && e.name === "AbortError") throw new Error("timed out after 2 minutes");
-      payload.stream = false;
+      payload.stream = false;   // streaming hiccup — fall back to one-shot
       full = await apiChat(payload, null, ctrl.signal);
     }
     if(!full.trim()){
